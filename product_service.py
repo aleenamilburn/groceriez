@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# mock product data
 products = [
     {'id': 1, 'name': 'Apples', 'price': 0.50, 'quantity': 100},
     {'id': 2, 'name': 'Bread', 'price': 1.20, 'quantity': 50}
@@ -20,7 +19,7 @@ def get_product(product_id):
     if product:
         return jsonify(product)
     else:
-        return jsonify({'message': 'Product not found'}), 404
+        return jsonify({'message': 'product not found'}), 404
 
 # add a new product
 @app.route('/products', methods=['POST'])
@@ -28,6 +27,17 @@ def add_product():
     new_product = request.get_json()
     products.append(new_product)
     return jsonify(new_product), 201
+
+# reduce the quantity of a product
+@app.route('/products/<int:product_id>/reduce_quantity', methods=['POST'])
+def reduce_product_quantity(product_id):
+    product = next((p for p in products if p['id'] == product_id), None)
+
+    if product and product['quantity'] > 0:
+        product['quantity'] -= 1
+        return jsonify({'message': 'quantity reduced', 'new_quantity': product['quantity']}), 200
+    else:
+        return jsonify({'message': 'product not found or out of stock'}), 404
 
 # start the Flask app
 if __name__ == '__main__':

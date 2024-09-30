@@ -1,8 +1,7 @@
 from flask import Flask, request, jsonify
 import requests
 
- # create the Flask app instance
-app = Flask(__name__) 
+app = Flask(__name__)
 
 carts = {}
 
@@ -20,17 +19,27 @@ def add_to_cart(user_id, product_id):
 
     if product_response.status_code == 200:
         product = product_response.json()
-        cart = carts.get(user_id, [])
-        cart.append({
-            'id': product['id'],
-            'name': product['name'],
-            'quantity': 1,
-            'price': product['price']
-        })
-        carts[user_id] = cart
-        return jsonify(cart), 201
+
+        # check if the product is in stock
+        if product['quantity'] > 0:
+            cart = carts.get(user_id, [])
+            cart.append({
+                'id': product['id'],
+                'name': product['name'],
+                'quantity': 1,
+                'price': product['price']
+            })
+            carts[user_id] = cart
+
+            # reduce the product quantity in the product service
+            reduce_quantity_url = f"http://127.0.0.1:5000/products/{product_id}/reduce_quantity"
+            requests.post(reduce_quantity_url, json={'quantity': 1})
+
+            return jsonify(cart), 201
+        else:
+            return jsonify({'message': 'product out of stock'}), 400
     else:
-        return jsonify({'message': 'Product not found'}), 404
+        return jsonify({'message': 'product not found'}), 404
 
 # remove a product from a user's cart
 @app.route('/cart/<int:user_id>/remove/<int:product_id>', methods=['POST'])
